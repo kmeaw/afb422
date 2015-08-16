@@ -68,15 +68,16 @@ uchar i, j, k, x;
 	}else if(rq->bRequest == CUSTOM_RQ_SET_BYTE2){
 	  code[2] = rq->wValue.bytes[0];
         }else if(rq->bRequest == CUSTOM_RQ_EXEC){
-	  PORTB &= ~4;
-	  _delay_ms(100);
-	  for(i=0; i<5; i++)
+	  for(i=0; i<8; i++)
 	  {
 	    /* 0 */
+#define DELAY0 186
+#define DELAY1 580
+#define DELAY_SYNC 6048
 	    PORTB |= 4;
-	    _delay_us(100);
+	    _delay_us(DELAY0);
 	    PORTB &= ~4;
-	    _delay_us(300);
+	    _delay_us(DELAY1);
 	    for(j=0; j<3; j++)
 	    {
 	      x = code[j];
@@ -84,18 +85,21 @@ uchar i, j, k, x;
 	      {
 		PORTB |= 4; // TX
 		if (x & 0x80)
-		  _delay_us(300);
+		  _delay_us(DELAY1);
 		else
-		  _delay_us(100);
+		  _delay_us(DELAY0);
 		PORTB &= ~4; // TX
 		if (x & 0x80)
-		  _delay_us(100);
+		  _delay_us(DELAY0);
 		else
-		  _delay_us(300);
+		  _delay_us(DELAY1);
 		x <<= 1;
 	      }
 	    }
-	    _delay_us(2000);
+	    PORTB |= 4;
+	    _delay_ms(DELAY0);
+	    PORTB &= ~4;
+	    _delay_us(DELAY_SYNC);
 	  }
 	  // PORTB &= ~32; // disable power
 	_delay_ms(100);
