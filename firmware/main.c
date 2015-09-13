@@ -53,11 +53,11 @@ PROGMEM const char usbHidReportDescriptor[22] = {   /* USB report descriptor */
 
 /* ------------------------------------------------------------------------- */
 
+static char code[3];
+static char countdown = 0;
 usbMsgLen_t usbFunctionSetup(uchar data[8])
 {
 usbRequest_t    *rq = (void *)data;
-static char code[3];
-uchar i, j, k, x;
 
     if((rq->bmRequestType & USBRQ_TYPE_MASK) == USBRQ_TYPE_VENDOR){
         DBG1(0x50, &rq->bRequest, 1);   /* debug output: print our request */
@@ -68,42 +68,7 @@ uchar i, j, k, x;
 	}else if(rq->bRequest == CUSTOM_RQ_SET_BYTE2){
 	  code[2] = rq->wValue.bytes[0];
         }else if(rq->bRequest == CUSTOM_RQ_EXEC){
-	  for(i=0; i<8; i++)
-	  {
-	    /* 0 */
-#define DELAY0 186
-#define DELAY1 580
-#define DELAY_SYNC 6048
-	    PORTB |= 4;
-	    _delay_us(DELAY0);
-	    PORTB &= ~4;
-	    _delay_us(DELAY1);
-	    for(j=0; j<3; j++)
-	    {
-	      x = code[j];
-	      for(k=0; k<8; k++)
-	      {
-		PORTB |= 4; // TX
-		if (x & 0x80)
-		  _delay_us(DELAY1);
-		else
-		  _delay_us(DELAY0);
-		PORTB &= ~4; // TX
-		if (x & 0x80)
-		  _delay_us(DELAY0);
-		else
-		  _delay_us(DELAY1);
-		x <<= 1;
-	      }
-	    }
-	    PORTB |= 4;
-	    _delay_ms(DELAY0);
-	    PORTB &= ~4;
-	    _delay_us(DELAY_SYNC);
-	  }
-	  // PORTB &= ~32; // disable power
-	_delay_ms(100);
-	PORTB |= 4;
+	  countdown = 18;
         }
     }else{
         /* calss requests USBRQ_HID_GET_REPORT and USBRQ_HID_SET_REPORT are
@@ -118,7 +83,7 @@ uchar i, j, k, x;
 
 int __attribute__((noreturn)) main(void)
 {
-        uchar i, j;
+uchar i, j, k, x;
 
         /* no pullups on USB and ISP pins */
         PORTD = 0;
@@ -149,6 +114,51 @@ int __attribute__((noreturn)) main(void)
 	PORTB |= 32; // enable power
         for (;;) {
                 usbPoll();
+		if (countdown > 10)
+		{
+		  countdown--;
+	  {
+	    /* 0 */
+#define DELAY0 186
+#define DELAY1 580
+#define DELAY_SYNC 6048
+	    PORTB |= 4;
+	    _delay_us(DELAY0);
+	    PORTB &= ~4;
+	    _delay_us(DELAY1);
+	    for(j=0; j<3; j++)
+	    {
+	      x = code[j];
+	      for(k=0; k<8; k++)
+	      {
+		PORTB |= 4; // TX
+		if (x & 0x80)
+		  _delay_us(DELAY1);
+		else
+		  _delay_us(DELAY0);
+		PORTB &= ~4; // TX
+		if (x & 0x80)
+		  _delay_us(DELAY0);
+		else
+		  _delay_us(DELAY1);
+		x <<= 1;
+	      }
+	    }
+	    PORTB |= 4;
+	    _delay_us(DELAY0);
+	    PORTB &= ~4;
+	    _delay_us(DELAY_SYNC);
+	  }
+	  // PORTB &= ~32; // disable power
+
+		}
+		else if (countdown > 0)
+		{
+		  countdown--;
+		  _delay_ms(10);
+		  PORTB |= 4;
+		}
+
         }
 }
 
